@@ -1,66 +1,93 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Gallery({ items }) {
     const [index, setIndex] = useState(0);
-    const [query, setQuery] = useState("");
+    const [likes, setLikes] = useState({});
+    const [favorites, setFavorites] = useState({});
+    const [color, setColor] = useState("#ffb3d9");
     const [funky, setFunky] = useState(false);
 
-    const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        if (!q) return items;
-        return items.filter(p =>
-            p.title.toLowerCase().includes(q) || p.tags.some(t => t.includes(q))
-        );
-    }, [items, query]);
+    const current = items[index];
+    useEffect(() => {
+        const prev = document.body.style.background;
+        document.body.style.background = color;
+        return () => { document.body.style.background = prev; };
+    }, [color]);
 
-    const has = filtered.length > 0;
-    const current = has ? filtered[index % filtered.length] : null;
+    const next = () => setIndex((i) => (i + 1) % items.length);
+    const prev = () => setIndex((i) => (i - 1 + items.length) % items.length);
 
-    const next = () => has && setIndex(i => (i + 1) % filtered.length);
-    const prev = () => has && setIndex(i => (i - 1 + filtered.length) % filtered.length);
+    const like = () =>
+        setLikes((m) => ({ ...m, [current.id]: (m[current.id] ?? 0) + 1 }));
+
+    const toggleFav = () =>
+        setFavorites((m) => ({ ...m, [current.id]: !m[current.id] }));
+    const cardText = funky ? "white" : "black";
 
     return (
         <section
             style={{
                 padding: 16,
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,.1)",
+                borderRadius: 16,
+                border: "1px solid rgba(0,0,0,.15)",
                 background: funky
                     ? "linear-gradient(135deg, #ff66c4, #9b5de5, #00bbf9)"
-                    : "white",
-                color: funky ? "white" : "black",
-                transition: "background 0.6s ease",
+                    : "rgba(255,255,255,0.9)",
+                color: cardText,
                 maxWidth: 720,
+                boxShadow: "0 8px 24px rgba(0,0,0,.08)"
             }}
         >
+            <h2 style={{ marginTop: 0 }}>
+                {current.title} {favorites[current.id] ? "⭐" : ""}
+            </h2>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-                <input
-                    placeholder="Filter by title or tag…"
-                    value={query}
-                    onChange={(e) => { setQuery(e.target.value); setIndex(0); }}
-                    style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
-                    aria-label="Filter images"
+
+            <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", marginBottom: 12 }}>
+                <img
+                    src={current.src}
+                    alt={current.title}
+                    style={{ width: "100%", display: "block", filter: "brightness(0.95)" }}
                 />
-                <button onClick={prev}>Prev</button>
-                <button onClick={next}>Next</button>
-                <button onClick={() => setFunky(f => !f)}>{funky ? "Normal BG" : "Surprise BG"}</button>
+                <div
+                    style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: "rgba(0,0,0,0.5)",
+                        color: "white",
+                        padding: "8px 12px",
+                        fontWeight: 600
+                    }}
+                >
+                    {current.title} — {likes[current.id] ?? 0} ❤
+                </div>
             </div>
 
-            {has ? (
-                <figure>
-                    <img
-                        src={current.src}
-                        alt={current.title}
-                        style={{ width: "100%", borderRadius: 12 }}
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", justifyContent: "center" }}>
+                <button onClick={prev}>Prev</button>
+                <button onClick={next}>Next</button>
+                <button onClick={like}> Like</button>
+                <button onClick={toggleFav}>{favorites[current.id] ? "Unfavorite" : "Favorite ⭐"}</button>
+
+
+                <button onClick={() => setFunky(f => !f)}>
+                    {funky ? "Normal Card" : "Surprise BG (Card)"}
+                </button>
+
+               
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 8 }}>
+                    <span style={{ fontSize: 14, opacity: 0.85 }}>Page color:</span>
+                    <input
+                        type="color"
+                        value={color}
+                        onChange={(e) => setColor(e.target.value)}
+                        aria-label="Pick page background color"
                     />
-                    <figcaption style={{ marginTop: 8 }}>
-                        <strong>{current.title}</strong> — tags: {current.tags.join(", ")}
-                    </figcaption>
-                </figure>
-            ) : (
-                <p>No matches. Try clearing the filter.</p>
-            )}
+                </label>
+            </div>
         </section>
     );
 }
